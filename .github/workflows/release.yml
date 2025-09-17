@@ -106,37 +106,45 @@ jobs:
   upload-binary:
     name: Compile release binaries
     needs: [create-release, generate-license]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.image }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - image: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             use-cross: false
 
-          - os: ubuntu-latest
+          - image: ubuntu-latest
             target: x86_64-unknown-linux-musl
             use-cross: false
 
-          - os: ubuntu-latest
+          - image: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             use-cross: true
 
-          - os: macos-latest
+          - image: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            use-cross: true
+
+          - image: macos-latest
             target: aarch64-apple-darwin
             use-cross: false
 
-          - os: windows-latest
+          - image: macos-latest
+            target: x86_64-apple-darwin
+            use-cross: false
+
+          - image: windows-latest
             target: x86_64-pc-windows-gnu
             use-cross: false
 
-          - os: windows-latest
+          - image: windows-latest
             target: x86_64-pc-windows-msvc
             use-cross: false
 
-          - os: windows-latest
+          - image: windows-latest
             target: aarch64-pc-windows-msvc
             use-cross: false
 
@@ -163,7 +171,7 @@ jobs:
         run: echo "CARGO=cross" >> $GITHUB_ENV
 
       - name: Install build deps (linux-musl)
-        if: matrix.target == 'x86_64-unknown-linux-musl'
+        if: matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'
         shell: bash
         run: |
           sudo apt-get update
@@ -173,7 +181,7 @@ jobs:
         shell: bash
         run: |
           ${{ env.CARGO }} build --verbose --release --locked --target ${{ matrix.target }}
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          if [ "${{ matrix.image }}" = "windows-latest" ]; then
             bin="target/${{ matrix.target }}/release/autobib.exe"
           else
             bin="target/${{ matrix.target }}/release/autobib"
@@ -181,7 +189,7 @@ jobs:
           echo "BIN=$bin" >> $GITHUB_ENV
 
       - name: Strip release binary (macos)
-        if: matrix.os == 'macos-latest'
+        if: matrix.image == 'macos-latest'
         shell: bash
         run: strip "$BIN"
 
@@ -211,7 +219,7 @@ jobs:
 
       - name: Build archive (Windows)
         shell: bash
-        if: matrix.os == 'windows-latest'
+        if: matrix.image == 'windows-latest'
         run: |
           7z a "$ARCHIVE.zip" "$ARCHIVE"
           certutil -hashfile "$ARCHIVE.zip" SHA256 > "$ARCHIVE.zip.sha256"
@@ -220,7 +228,7 @@ jobs:
   
       - name: Build archive (Unix)
         shell: bash
-        if: matrix.os != 'windows-latest'
+        if: matrix.image != 'windows-latest'
         run: |
           tar czf "$ARCHIVE.tar.gz" "$ARCHIVE"
           shasum -a 256 "$ARCHIVE.tar.gz" > "$ARCHIVE.tar.gz.sha256"

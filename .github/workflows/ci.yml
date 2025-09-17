@@ -80,3 +80,8 @@ jobs:
     - name: Check remotes file contains no duplicates
       shell: bash
       run: test "$(cat ${{ env.REMOTES_FILE }} | uniq -d | wc -w)" -eq 0
+
+    # Check bash scripts
+    - name: Checking contents of `scripts` directory
+      shell: bash
+      run: shellcheck scripts/*.sh --enable=all
